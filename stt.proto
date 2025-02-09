@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package cognico.cloud.ai.stt.v1;
+
+// Пример определения настроек распознавания
+message StreamingOptions {
+  // Здесь можно добавить настройки модели, нормализации, языковые ограничения и т.д.
+  RecognitionModelOptions recognition_model = 1;
+}
+
+message RecognitionModelOptions {
+  AudioFormatOptions audio_format = 1;
+  TextNormalizationOptions text_normalization = 2;
+  LanguageRestrictionOptions language_restriction = 3;
+  // и т.д.
+}
+
+message AudioFormatOptions {
+  oneof audio {
+    RawAudio raw_audio = 1;
+    // Другие варианты контейнеров, если нужны
+  }
+}
+
+message RawAudio {
+  enum AudioEncoding {
+    AUDIO_ENCODING_UNSPECIFIED = 0;
+    LINEAR16_PCM = 1;
+  }
+  AudioEncoding audio_encoding = 1;
+  int64 sample_rate_hertz = 2;
+  int64 audio_channel_count = 3;
+}
+
+message TextNormalizationOptions {
+  enum TextNormalization {
+    TEXT_NORMALIZATION_UNSPECIFIED = 0;
+    TEXT_NORMALIZATION_ENABLED = 1;
+    TEXT_NORMALIZATION_DISABLED = 2;
+  }
+  TextNormalization text_normalization = 1;
+  bool profanity_filter = 2;
+  bool literature_text = 3;
+}
+
+message LanguageRestrictionOptions {
+  enum LanguageRestrictionType {
+    LANGUAGE_RESTRICTION_TYPE_UNSPECIFIED = 0;
+    WHITELIST = 1;
+    BLACKLIST = 2;
+  }
+  LanguageRestrictionType restriction_type = 1;
+  repeated string language_code = 2;
+}
+
+// Основное сообщение запроса
+message StreamingRequest {
+  oneof message {
+    StreamingOptions session_options = 1;
+    AudioChunk chunk = 2;
+    // Дополнительные поля: silence_chunk, eou и т.д.
+  }
+}
+
+message AudioChunk {
+  bytes data = 1;
+}
+
+// Пример сообщения ответа (здесь можно добавить все нужные поля)
+message StreamingResponse {
+  oneof event {
+    AlternativeUpdate partial = 1;
+    AlternativeUpdate final = 2;
+    // Другие варианты событий (eou_update, final_refinement и т.д.)
+  }
+  // Пример: идентификатор сессии, можно добавить дополнительные служебные поля
+  string session_id = 3;
+}
+
+message AlternativeUpdate {
+  repeated Alternative alternatives = 1;
+  string channel_tag = 2;
+}
+
+message Alternative {
+  string text = 1;
+  double confidence = 2;
+  // можно добавить информацию о словах, тайминги и т.д.
+}
+
+service Recognizer {
+  // Потоковый метод: принимает поток StreamingRequest и возвращает поток StreamingResponse
+  rpc RecognizeStreaming (stream StreamingRequest) returns (stream StreamingResponse);
+}

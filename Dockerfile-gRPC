@@ -1,0 +1,13 @@
+FROM openapitools/openapi-generator-cli:v7.8.0
+
+ARG USER=docker-build
+ARG UID=1000
+ARG GID=1000
+
+RUN echo UID:GID = ${UID}:${GID}
+RUN if [ ${GID} != 1000 ] && [ ${GID} != 0 ]; then groupadd --gid=${GID} ${USER}; exit 0; fi;
+RUN if [ ${UID} != 1000 ] && [ ${UID} != 0 ]; then useradd --create-home -d /home/docker-build --no-log-init --uid=${UID} -g ${GID} ${USER}; fi;
+
+USER ${UID}:${GID}
+
+WORKDIR /app
