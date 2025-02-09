@@ -1,0 +1,16 @@
+FROM python:3.11
+
+COPY requirements-grpc.txt .
+RUN pip install -r requirements-grpc.txt
+
+ARG USER=docker-build
+ARG UID=1000
+ARG GID=1000
+
+RUN echo UID:GID = ${UID}:${GID}
+RUN groupadd --gid=${GID} ${USER};
+RUN useradd --create-home -d /home/docker-build --no-log-init --uid=${UID} -g ${USER} ${USER};
+
+USER ${UID}
+
+WORKDIR /app
