@@ -7,7 +7,3 @@ repos:
     rev: 6.0.0
     hooks:
       - id: flake8
-#  - repo: https://github.com/microsoft/pyright
-#    rev: 1.1.393
-#    hooks:
-#      - id: pyright
