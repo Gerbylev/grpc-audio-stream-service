@@ -1,9 +1,5 @@
-from concurrent import futures
 import time
-import grpc
 
-from proto import stt_pb2_grpc
-from services.recognizer_service import RecognizerServicer
 from services.start_service import create_server
 
 
@@ -17,6 +13,7 @@ def serve():
     except KeyboardInterrupt:
         print("Остановка сервера")
         server.stop(0)
+
 
 if __name__ == "__main__":
     serve()
