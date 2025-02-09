@@ -5,10 +5,12 @@
 *.ipr
 
 ### Proto ###
-proto/
+stt_pb2.py
+stt_pb2.pyi
+stt_pb2_grpc.py
 
 test_at_time_*/
-server/data/
+
 ### VS Code ###
 .vscode/
 
