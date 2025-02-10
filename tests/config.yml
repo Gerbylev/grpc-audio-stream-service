@@ -1,0 +1,16 @@
+profile: dev
+server_port: 50051
+
+logging:
+    app_name: stt
+    graylog:
+      enabled: false
+      host: localhost
+      port: 12201
+      udp: false
+    console:
+      enabled: true
+    root_level: DEBUG
+    levels:
+      asyncio: INFO
+      httpx: INFO

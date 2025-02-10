@@ -3,3 +3,4 @@ grpcio-tools
 protobuf
 pyyaml
 graypy
+torchaudio

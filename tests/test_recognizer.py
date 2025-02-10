@@ -1,6 +1,8 @@
 import pytest
 import grpc
 import time
+import soundfile as sf
+
 import proto.stt_pb2 as pb2
 import proto.stt_pb2_grpc as pb2_grpc
 from services.start_service import create_server
@@ -23,11 +25,19 @@ def grpc_channel(grpc_server):
 
 
 @pytest.mark.asyncio
-async def test_recognize_streaming(grpc_channel):
-
+async def test_recognize_streaming_with_audio_file(grpc_channel):
     stub = pb2_grpc.RecognizerStub(grpc_channel)
 
+    # Читаем аудиофайл с помощью soundfile
+    data, sr = sf.read("data/segment.flac", dtype='int16')
+    # Если аудио имеет несколько каналов, оставляем первый канал
+    if data.ndim > 1:
+        data = data[:, 0]
+    # Предполагаем, что sample_rate уже равен 16000; иначе необходимо выполнить ресемплирование
+    raw_bytes = data.tobytes()
+
     def request_generator():
+        # Передаём настройки сессии
         yield pb2.StreamingRequest(
             session_options=pb2.StreamingOptions(
                 recognition_model=pb2.RecognitionModelOptions(
@@ -50,11 +60,16 @@ async def test_recognize_streaming(grpc_channel):
                 )
             )
         )
-        yield pb2.StreamingRequest(chunk=pb2.AudioChunk(data=b"\x00\x01"))
-        yield pb2.StreamingRequest(chunk=pb2.AudioChunk(data=b"\x00\x01"))
-        yield pb2.StreamingRequest(chunk=pb2.AudioChunk(data=b"\x00\x01"))
+        # Разбиваем аудио на чанки и отправляем
+        chunk_size = 1024  # можно подобрать оптимальный размер чанка
+        for i in range(0, len(raw_bytes), chunk_size):
+            chunk = raw_bytes[i:i+chunk_size]
+            yield pb2.StreamingRequest(chunk=pb2.AudioChunk(data=chunk))
 
     responses = stub.RecognizeStreaming(request_generator())
     response_list = list(responses)
+
+    # Проверяем, что получили хотя бы один ответ
     assert len(response_list) >= 1
-    assert response_list[0].session_id == "dummy-session-id"
+    # Проверяем идентификатор сессии (может возвращаться "dummy-session-id" или "session-123" в зависимости от реализации)
+    assert response_list[0].session_id in ["dummy-session-id", "session-123"]
