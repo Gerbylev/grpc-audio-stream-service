@@ -8,3 +8,5 @@ exclude = '''
   | __pycache__
 )/
 '''
+[tool.ruff.format]
+skip-magic-trailing-comma = true

@@ -54,7 +54,7 @@ class RecognizerServicer(pb2_grpc.RecognizerServicer):
         frames = []
         offset = 0
         while offset + self.frame_size <= len(self.audio_buffer):
-            frame = self.audio_buffer[offset:offset + self.frame_size]
+            frame = self.audio_buffer[offset : offset + self.frame_size]
             frames.append(frame)
             offset += self.frame_size
         # Сохраняем остаток для следующей итерации
@@ -88,9 +88,9 @@ class RecognizerServicer(pb2_grpc.RecognizerServicer):
         if current_segment:
             if len(current_segment) > self.overlap_frames:
                 # Отдаем сегмент без последних overlap_frames, которые сохраняем для перекрытия
-                segment_without_overlap = current_segment[:-self.overlap_frames]
+                segment_without_overlap = current_segment[: -self.overlap_frames]
                 segments.append(b"".join(segment_without_overlap))
-                self.tail_frames = current_segment[-self.overlap_frames:]
+                self.tail_frames = current_segment[-self.overlap_frames :]
             else:
                 # Если сегмент слишком короткий – сохраняем полностью для будущего объединения
                 self.tail_frames = current_segment
@@ -120,18 +120,9 @@ class RecognizerServicer(pb2_grpc.RecognizerServicer):
         """
         Формирует StreamingResponse на основе распознанного текста.
         """
-        alternative = pb2.Alternative(
-            text=text,
-            confidence=0.9  # Здесь можно рассчитать реальную уверенность
-        )
-        alt_update = pb2.AlternativeUpdate(
-            alternatives=[alternative],
-            channel_tag="default"
-        )
-        response = pb2.StreamingResponse(
-            final=alt_update,
-            session_id="session-123"  # Можно заменить на уникальный идентификатор сессии
-        )
+        alternative = pb2.Alternative(text=text, confidence=0.9)  # Здесь можно рассчитать реальную уверенность
+        alt_update = pb2.AlternativeUpdate(alternatives=[alternative], channel_tag="default")
+        response = pb2.StreamingResponse(final=alt_update, session_id="session-123")  # Можно заменить на уникальный идентификатор сессии
         return response
 
     def RecognizeStreaming(self, request_iterator, context):
