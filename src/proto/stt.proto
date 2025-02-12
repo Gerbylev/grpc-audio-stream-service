@@ -1,26 +1,26 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 package cognico.cloud.ai.stt.v1;
 
 // Пример определения настроек распознавания
 message StreamingOptions {
-  // Здесь можно добавить настройки модели, нормализации, языковые ограничения и т.д.
-  RecognitionModelOptions recognition_model = 1;
+  string session_id = 1;
+//  RecognitionModelOptions recognition_model = 1;
 }
 
 message RecognitionModelOptions {
   AudioFormatOptions audio_format = 1;
   TextNormalizationOptions text_normalization = 2;
   LanguageRestrictionOptions language_restriction = 3;
-  // и т.д.
 }
 
 message AudioFormatOptions {
   oneof audio {
     RawAudio raw_audio = 1;
-    // Другие варианты контейнеров, если нужны
+    // Другие варианты, если нужны
   }
 }
 
@@ -55,42 +55,84 @@ message LanguageRestrictionOptions {
   repeated string language_code = 2;
 }
 
-// Основное сообщение запроса
+// Основное сообщение запроса для стриминга
 message StreamingRequest {
   oneof message {
-    StreamingOptions session_options = 1;
+    // Сообщение для создания новой сессии
+    StreamingOptions options = 1;
+    // Сообщение с аудио данными
     AudioChunk chunk = 2;
-    // Дополнительные поля: silence_chunk, eou и т.д.
+    // Возможные другие типы сообщений (например, silence_chunk, eou и т.д.)
   }
 }
 
+// Сообщение аудио чанка
 message AudioChunk {
+  // Если сессия уже создана, клиент передаёт её идентификатор
+//  string session_id = 3;
+  // Идентификатор канала, из которого пришёл этот аудио чанк
+  string channel_id = 4;
+  // Собственно аудио данные
   bytes data = 1;
 }
 
-// Пример сообщения ответа (здесь можно добавить все нужные поля)
+// Сообщение ответа сервера для стриминга
 message StreamingResponse {
   oneof event {
     AlternativeUpdate partial = 1;
     AlternativeUpdate final = 2;
-    // Другие варианты событий (eou_update, final_refinement и т.д.)
+    // Другие типы событий (e.g. eou_update, final_refinement и т.д.)
   }
-  // Пример: идентификатор сессии, можно добавить дополнительные служебные поля
+  // Уникальный идентификатор сессии, назначенный сервером
   string session_id = 3;
 }
 
+// Пример обновления альтернатив с информацией о канале
 message AlternativeUpdate {
   repeated Alternative alternatives = 1;
+  // Можно добавить идентификатор канала для сопоставления ответа с определённым аудио каналом
   string channel_tag = 2;
 }
 
 message Alternative {
   string text = 1;
   double confidence = 2;
-  // можно добавить информацию о словах, тайминги и т.д.
+  // Дополнительная информация (например, тайминги) может быть добавлена при необходимости
 }
 
+// Сообщение для конфигурации уже созданной сессии
+message SessionConfiguration {
+  // Уникальный идентификатор сессии, полученный при старте
+  string session_id = 1;
+  // Настройки: язык, параметры распознавания и т.д.
+  string language_code = 2;
+  // Дополнительно можно передавать и другие параметры конфигурации,
+  // например, изменяемые настройки модели
+  //  RecognitionModelOptions recognition_model = 3;
+}
+
+message SessionConfigResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SessionId {
+  string session_id = 1;
+}
+
+message SessionInfo {
+  string duration = 1;
+}
+
+message CreateSessionInfo {
+  repeated string emails = 1;
+}
+
+// Определение сервиса с двумя RPC-методами
 service Recognizer {
-  // Потоковый метод: принимает поток StreamingRequest и возвращает поток StreamingResponse
-  rpc RecognizeStreaming (stream StreamingRequest) returns (stream StreamingResponse);
+  rpc CreateSession (CreateSessionInfo) returns (SessionId);
+  // Потоковый метод для отправки аудио и записи в буфер
+  rpc StreamingAudio (stream StreamingRequest) returns (SessionInfo);
+  // Получение распознанного текста в потоке
+  rpc GetRecognizeStream (stream SessionConfiguration) returns (stream StreamingResponse);
 }
